@@ -228,12 +228,7 @@ trait RichData_base_compiler {
     }
 }
 
-//trait RichData_set {
-//    function __set($name, $value) {
-//        //TODO implement this
-//    }
-//
-//}
+
 
 
 trait RichData_get {
@@ -376,6 +371,15 @@ trait RichData_get {
 //                }
 //        }
 
+        if (!isset($this->_asrRichDataMeta['__get'][$StrVarName])) {
+            $c = get_called_class();
+            $msg = "'$StrVarName' is a not valid RichData var for class {$c}. ";
+            print "<br>$msg";
+            print "<br>" . __FILE__ . ' ' . __LINE__;
+            global $logger;
+            $logger->error($msg, [__FILE__, __LINE__]);
+            exit(1);
+        }
         switch ($this->_asrRichDataMeta['__get'][$StrVarName]['_getBy']) {
             case null:
                 return $this->$StrVarName;
@@ -388,12 +392,17 @@ trait RichData_get {
 
 }
 
-
+//trait RichData_set {
+//    function __set($name, $value) {
+//        //TODO implement this
+//    }
+//
+//}
 trait RichData {
     use RichData_base;
     use RichData_base_compiler;
     use RichData_get;
-//    use RichData_set;
+    //use RichData_set;
 }
 
 trait CrazyRichData {
