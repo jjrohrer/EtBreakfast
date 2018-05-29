@@ -2,6 +2,8 @@
 
 namespace EtLib18;
 
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 
 CONST BeInMenu = 1;
 CONST BeAtomic = 2;
@@ -32,9 +34,6 @@ trait RichData_base {
                 $this->$methodName();
             }
         }
-        print "<br>".__FILE__.__LINE__.__METHOD__."<br>"."<pre>";
-        print_r($this->_asrRichDataMeta);
-        print "</pre>";
 
     }
 
@@ -132,7 +131,7 @@ trait RichData_base_compiler {
     private $_asrRichDataMeta = [
         '_traits' => [
             '_longTraitNames' => [],
-            '_shortTraitNames' =>[]
+            '_shortTraitNames' => [],
         ], #just the RichData traits
         #'__richDataTraits_short_' => [], #without the namespace.  KnownLimitation: could be collisions
         #'__construct_'=>[],
@@ -238,7 +237,7 @@ trait RichData_base_compiler {
 
 
 trait RichData_get {
-    function __construct_RichData_get () {
+    function __construct_RichData_get() {
         #print "Hello from ".get_called_class()."::".__METHOD__;
     }
 
@@ -263,26 +262,86 @@ trait RichData_get {
 //
 //            // Future: Externals might need to register themselves
 
-
+            global $logger;
             // Handle getBy
             if (!isset($this->_asrRichDataMeta['__get'][$protectedVarName]['_getBy'])) {
                 $this->_asrRichDataMeta['__get'][$protectedVarName]['_getBy'] = [];
             }
 
-            $getBy = null;
-            if (method_exists($this, "getBy{$protectedVarName}")) {
-                $getBy = "getBy{$protectedVarName}";
-            } elseif (method_exists($this, "getBy_{$protectedVarName}")) {
-                $getBy = "getBy_{$protectedVarName}";
-            } elseif (method_exists($this, "_getBy_{$protectedVarName}")) {
-                $getBy = "_getBy_{$protectedVarName}";
-            } elseif (method_exists($this, "get{$protectedVarName}")) {
-                $getBy = "get{$protectedVarName}";
-            } elseif (method_exists($this, "get_{$protectedVarName}")) {
-                $getBy = "get_{$protectedVarName}";
+            #$getBy = null;
+            $trimmedVarName = trim($protectedVarName,'_');
+            $trimmedVarName_allLower = strtolower ($trimmedVarName);
+
+
+            // method exists
+            $reflect = new \ReflectionObject($this);
+            $arrReflectMethodObjects = $reflect->getMethods(); //http://www.php.net/manual/en/reflectionclass.getmethods.php
+
+            $protectedVarName_allLower = strtolower($protectedVarName);
+            $shortMethodNamesInTheClass_originalCase = [];
+            $shortMethodNamesInTheClass_lowerCase = [];
+            foreach ($arrReflectMethodObjects as $asrMethodObject) {
+                $shortMethodNamesInTheClass_originalCase[] = $asrMethodObject->name;
+                $shortMethodNamesInTheClass_lowerCase[] = strtolower($asrMethodObject->name);
             }
-            // TODO: More gracefully handle auto ucfirt and ensureing no duplicates
-            $this->_asrRichDataMeta['__get'][$protectedVarName]['_getBy'] = $getBy;
+//            print "<br>Here are our options for protectedVarName($protectedVarName) ... <br><pre>";
+//            print_r($shortMethodNamesInTheClass_lowerCase);
+//            print "</pre><hr>";
+
+
+
+            $arrMethodNamePermutations_allLower = [
+                "get{$trimmedVarName_allLower}",
+                "get_{$trimmedVarName_allLower}",
+                "get__{$trimmedVarName_allLower}",
+                "_get{$trimmedVarName_allLower}",
+                "_get_{$trimmedVarName_allLower}",
+                "_get__{$trimmedVarName_allLower}",
+                "__get{$trimmedVarName_allLower}",
+                "__get_{$trimmedVarName_allLower}",
+                "__get__{$trimmedVarName_allLower}",
+            ];
+            $getBy = [];
+            $slotMatches = [];
+            foreach ($arrMethodNamePermutations_allLower as $methodName_allLower) {
+                $slot = array_search($methodName_allLower, $shortMethodNamesInTheClass_lowerCase);
+                if ($slot !== false) {
+                    if (array_search($slot, $slotMatches) === false) {
+                        $slotMatches[] = $slot;
+                    } else {
+                        // we already matches to this exact slot - so don't re-add it
+                    }
+                    #print "<br> Hit: Found $methodName_allLower matching against ".$shortMethodNamesInTheClass_originalCase[$slot];
+                } else {
+                    #print "<br> Miss:  $methodName_allLower didn't match any of the actual method names";
+
+                }
+
+            }
+            if (count($slotMatches) == 0) {
+                $this->_asrRichDataMeta['__get'][$protectedVarName]['_getBy'] = null;
+            } elseif (count($slotMatches) == 1) {
+                $getBy = $shortMethodNamesInTheClass_originalCase[$slotMatches[0]];
+                $this->_asrRichDataMeta['__get'][$protectedVarName]['_getBy'] = $getBy;
+            } else {
+                $msg = "The following methods are ambiguous with getting protectedVarName($protectedVarName), so just pick one. ";
+                $c = get_called_class();
+                foreach ($slotMatches as $slot) {
+                    $getBy_original = $shortMethodNamesInTheClass_originalCase[$slot];
+                    $getBy_short = $shortMethodNamesInTheClass_originalCase[$slot];
+                    $msg .= "<br> {$c}::($getBy_original)";
+                }
+                print "<br>$msg";
+                print "<br>".__FILE__.' '.__LINE__;
+                global $logger;
+                $logger->error($msg,[__FILE__,__LINE__]);
+//                print "<br><pre>";
+//                print_r($slotMatches);
+//                print_r($shortMethodNamesInTheClass_lowerCase);
+//                print_r($shortMethodNamesInTheClass_originalCase);
+//                print_r($this);
+                exit(1);
+            }
 
         }
 
@@ -291,7 +350,7 @@ trait RichData_get {
     // ============================= Get =========================================================================
     // get the vlaue of a protected var w/o normal filtering - use with caution
     // motivation: when writing ClsEtVar, it needed a way to get the original values
-    function getRaw($StrVarName,$bDieOnNotThere=false) {
+    function getRaw($StrVarName, $bDieOnNotThere = FALSE) {
         #EtError::AssertTrue(property_exists($this,$StrVarName), 'error', __FILE__, __LINE__, "$StrVarName isn't a real property of me " .get_class($this)." in ".get_called_class());
         return $this->$StrVarName;
     }
