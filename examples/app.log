@@ -1,0 +1,8 @@
+[2018-05-29 17:06:49] channel-name.INFO: Hello log! [] []
+[2018-05-29 17:07:25] channel-name.INFO: Hello log! [] []
+[2018-05-29 17:07:45] channel-name.INFO: Hello log! [] []
+[2018-05-29 17:07:45] channel-name.ERROR: Bar [] []
+[2018-05-29 17:18:59] channel-name.INFO: Hello log! [] []
+[2018-05-29 17:18:59] channel-name.ERROR: Bar [] []
+[2018-05-29 17:19:18] channel-name.INFO: Hello log! [] []
+[2018-05-29 17:19:18] channel-name.ERROR: Bar [] []

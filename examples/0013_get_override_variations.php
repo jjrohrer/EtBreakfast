@@ -81,3 +81,6 @@ print "<br> The full name is8: ". $a->_fullName8;// (JJ Rohrer) Magically calls 
 //Next up:
 // - Show the read-only working
 
+
+print "<pre><br>";
+print_r($a);
