@@ -337,7 +337,12 @@ trait RichData_get {
             } else {
                 $methodName = $output['methodMatch'];
             }
-            $this->_asrRichDataMeta['__fields'][$protectedVarName]['_getBy'] = $methodName;
+            if (substr($protectedVarName,0,2) != '__') { // <-- Ignore if 'writeonly' a
+                $this->_asrRichDataMeta['__fields'][$protectedVarName]['_getBy'] = $methodName;
+            } else {
+                $output['reason'] = "Nothing: Is Write-Only because it starts with a double underscore";
+            }
+
             $this->_asrRichDataMeta['__fields'][$protectedVarName]['//']['_getBy_reason'] = $output['reason'];
         }
     }
@@ -372,7 +377,7 @@ trait RichData_get {
 
         if (!isset($this->_asrRichDataMeta['__fields'][$StrVarName]['_getBy'])) {
             $c = get_called_class();
-            $msg = "'$StrVarName' is a not valid RichData var for class {$c}. ";
+            $msg = "'$StrVarName' is a not gettable RichData var for class {$c}. ";
             print "<br>$msg";
             print "<br>" . __FILE__ . ' ' . __LINE__;
             global $logger;
@@ -399,11 +404,13 @@ trait RichData_set {
                 } else {
                     $methodName = $output['methodMatch'];
                 }
-            if (substr($protectedVarName,0,1) != '_') { // <-- Ignore if 'readonly' a
+            if (substr($protectedVarName,0,2) == '__') { // this is write only shorthand
                 $this->_asrRichDataMeta['__fields'][$protectedVarName]['_setBy'] = $methodName;
-
-            } else {
+                $output['reason'] .= " & WriteOnly '__' shorthand";
+            } elseif (substr($protectedVarName,0,1) == '_') { // <-- Ignore if 'readonly' a
                 $output['reason'] = "Nothing: Is ReadOnly because it starts with an underscore";
+            } else {
+                $this->_asrRichDataMeta['__fields'][$protectedVarName]['_setBy'] = $methodName;
             }
             $this->_asrRichDataMeta['__fields'][$protectedVarName]['//']['_setBy_reason'] = $output['reason'];
 
