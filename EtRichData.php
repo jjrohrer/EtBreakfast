@@ -370,7 +370,7 @@ trait RichData_get {
 //                }
 //        }
 
-        if (!isset($this->_asrRichDataMeta['__fields'][$StrVarName])) {
+        if (!isset($this->_asrRichDataMeta['__fields'][$StrVarName]['_getBy'])) {
             $c = get_called_class();
             $msg = "'$StrVarName' is a not valid RichData var for class {$c}. ";
             print "<br>$msg";
@@ -389,15 +389,25 @@ trait RichData_get {
 
 trait RichData_set {
     function __compile_RichData_set() {
+
+
         foreach ($this->_asrRichDataMeta['_protectedVarNames'] as $protectedVarName) {
-            $output = $this->_util_getMethodDerivites('set', $protectedVarName);
-            if (is_null($output['methodMatch'])) {
-                $methodName = 'setRaw';
+
+                $output = $this->_util_getMethodDerivites('set', $protectedVarName);
+                if (is_null($output['methodMatch'])) {
+                    $methodName = 'setRaw';
+                } else {
+                    $methodName = $output['methodMatch'];
+                }
+            if (substr($protectedVarName,0,1) != '_') { // <-- Ignore if 'readonly' a
+                $this->_asrRichDataMeta['__fields'][$protectedVarName]['_setBy'] = $methodName;
+
             } else {
-                $methodName = $output['methodMatch'];
+                $output['reason'] = "Nothing: Is ReadOnly because it starts with an underscore";
             }
-            $this->_asrRichDataMeta['__fields'][$protectedVarName]['_setBy'] = $methodName;
             $this->_asrRichDataMeta['__fields'][$protectedVarName]['//']['_setBy_reason'] = $output['reason'];
+
+
         }
     }
     // ============================= Get =========================================================================
@@ -407,9 +417,9 @@ trait RichData_set {
 
 
     function __set($StrVarName, $value) {
-        if (!isset($this->_asrRichDataMeta['__fields'][$StrVarName])) {
+        if (!isset($this->_asrRichDataMeta['__fields'][$StrVarName]['_setBy'])) {
             $c = get_called_class();
-            $msg = "'$StrVarName' is a not valid RichData var for class {$c}. ";
+            $msg = "'$StrVarName' is a not settable RichData var for class {$c}. ";
             print "<br>$msg";
             print "<br>" . __FILE__ . ' ' . __LINE__;
             global $logger;
