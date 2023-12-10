@@ -1,4 +1,6 @@
 # ET_Breakfast
+This is here for historical refence only 12/2023.
+
 An opinionated framework with a goal of rapidly creating a minimally lovable product.
 
 Version: Pre-Alpha - not suitable for human eyes.
